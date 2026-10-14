@@ -1,0 +1,77 @@
+# ==========================================
+# IdentityLens Git Ignore Rules
+# ==========================================
+
+# Environment variables & secrets (CRITICAL)
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Node dependencies & build artifacts
+node_modules/
+dist/
+dist-ssr/
+build/
+*.local
+
+# Python virtual environments & bytecode
+venv/
+.venv/
+backend/venv/
+backend/.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing & Caches
+.pytest_cache/
+.coverage
+htmlcov/
+.oxlint-cache
+
+# OS-generated files & local temp data
+.DS_Store
+Thumbs.db
+desktop.ini
+*.lnk
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Cloudflare Tunnel binaries & tokens
+cloudflared
+cloudflared.exe
+cloudflared*.exe
+.cloudflared/
+
+# IDE & Editor directories
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

@@ -1,0 +1,600 @@
+<div align="center">
+
+# 🔍 IdentityLens
+
+### Digital Identity Intelligence Platform
+
+**OSINT-Powered Scanner • Sentiment Analyzer • Automated Data Removal**
+
+[![Version](https://img.shields.io/badge/version-v1.0.0--alpha-blue?style=flat-square)](#changelog)
+[![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](#license)
+[![React](https://img.shields.io/badge/React-19.2-61DAFB?style=flat-square&logo=react)](#tech-stack)
+[![Vite](https://img.shields.io/badge/Vite-8.3-646CFF?style=flat-square&logo=vite)](#tech-stack)
+[![Architecture](https://img.shields.io/badge/arch-Microservices%20%2F%20Zero--Knowledge-purple?style=flat-square)](#architecture)
+
+---
+
+*IdentityLens is a privacy-first platform that discovers your digital footprint across 3,000+ websites, monitors breach databases, performs AI-powered sentiment analysis on public mentions, and automates data deletion requests under GDPR, CCPA, and DPDP Act — all without storing your raw personal data on any server.*
+
+</div>
+
+---
+
+## 📋 Table of Contents
+
+- [Features](#-features)
+- [Architecture Overview](#-architecture-overview)
+- [System Architecture Diagram](#-system-architecture-diagram)
+- [Tech Stack](#-tech-stack)
+- [Project Structure](#-project-structure)
+- [Getting Started](#-getting-started)
+- [Configuration](#-configuration)
+- [Core Modules](#-core-modules)
+- [Data Flow Pipeline](#-data-flow-pipeline)
+- [Security & Privacy](#-security--privacy)
+- [Remediation Engine](#-remediation-engine)
+- [API Reference](#-api-reference)
+- [Roadmap](#-roadmap)
+- [Changelog](#-changelog)
+- [Contributing](#-contributing)
+- [License](#-license)
+
+---
+
+## ✨ Features
+
+### 🔍 OSINT Discovery Engine
+- **Username Enumeration** — Scans 3,000+ platforms using Sherlock, Maigret, and WhatsMyName
+- **Breach Monitoring** — Queries HIBP, DeHashed, Snusbase, and LeakCheck databases
+- **Data Broker Detection** — Identifies PII listings across 640+ data broker sites
+- **Email OSINT** — Discovers accounts registered with target emails via Holehe
+- **Phone OSINT** — Analyzes phone number exposure via PhoneInfoga
+- **Dark Web Monitoring** — Scans paste sites and dark web indexes via IntelX
+
+### 🧠 Perception AI (NLP Pipeline)
+- **Named Entity Recognition (NER)** — Extracts entities using spaCy + GLiNER zero-shot models
+- **Entity Disambiguation** — Context-window resolver to distinguish identical names
+- **Aspect-Based Sentiment Analysis** — RoBERTa-powered analysis of *what* is being praised/criticized
+- **Toxicity & Threat Scoring** — Detects doxxing, harassment, and coordinated attacks via HateBERT
+- **Composite Risk Scoring** — Weighted 0-100 Digital Exposure Score
+
+### 🗑️ Automated Remediation
+- **Data Broker Opt-Outs** — Headless Playwright automation with CAPTCHA solving
+- **DSAR Generation** — Multi-jurisdiction legal request templates (GDPR, CCPA, DPDP, LGPD)
+- **Platform Revocation** — OAuth 2.0 + PKCE direct post/media deletion
+- **Search Deindexing** — Automated Google/Bing legal removal filings
+- **Continuous Re-Monitoring** — Weekly delta scans with regression detection
+
+### 🔐 Zero-Knowledge Privacy
+- **Client-Side Encryption** — AES-256-GCM encryption before data leaves the browser
+- **Key Derivation** — Argon2id KDF from user password
+- **Hash-Only Queries** — OSINT lookups use SHA-256 hashes, never raw PII
+- **Recovery** — Shamir's Secret Sharing for key recovery across devices
+
+---
+
+## 🏗️ Architecture Overview
+
+IdentityLens uses an **event-driven microservices architecture** with a **zero-knowledge privacy model**. The system is designed so that the server never has access to raw user data — all PII is encrypted client-side before transmission.
+
+### Key Architectural Principles
+
+| Principle | Implementation |
+|---|---|
+| **Zero-Knowledge** | Client-side AES-256-GCM encryption; server stores only encrypted blobs |
+| **Event-Driven** | RabbitMQ/Kafka message bus decouples OSINT collection from NLP processing |
+| **Durable Workflows** | Temporal.io orchestrates multi-week deletion flows with retry logic |
+| **Data Minimization** | No raw PII stored on servers; results encrypted per-user |
+| **Horizontal Scaling** | Stateless microservices behind API gateway; containerized via Docker/K8s |
+
+---
+
+## 📐 System Architecture Diagram
+
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                        CLIENT LAYER (Zero-Knowledge)                        │
+│                                                                              │
+│   ┌─────────────────────────┐    ┌────────────────────────────────────┐      │
+│   │   Web App (React/Vite)  │    │  Client-Side Encryption Engine    │      │
+│   │   • Dashboard UI        │───▶│  • AES-256-GCM Encrypt/Decrypt   │      │
+│   │   • Score Visualizations│    │  • Argon2id Key Derivation        │      │
+│   │   • Real-time Charts    │    │  • SHA-256 PII Hashing            │      │
+│   │   • Deletion Tracker    │    │  • Web Crypto API                 │      │
+│   └─────────────────────────┘    └──────────────┬─────────────────────┘      │
+│                                                  │ (encrypted payloads only) │
+└──────────────────────────────────────────────────┼───────────────────────────┘
+                                                   │
+                                    ┌──────────────▼──────────────┐
+                                    │   API Gateway (Traefik)     │
+                                    │   • TLS Termination         │
+                                    │   • Rate Limiting (Redis)   │
+                                    │   • Auth (OAuth 2.0 + PKCE) │
+                                    └──────────────┬──────────────┘
+                                                   │
+┌──────────────────────────────────────────────────┼───────────────────────────┐
+│                    IDENTITYLENS CORE ENGINE                                  │
+│                                                                              │
+│   ┌──────────────────────────────────────────────────────────────────┐       │
+│   │              ORCHESTRATOR (Temporal.io Workflows)                 │       │
+│   └────────┬──────────┬──────────────┬──────────────┬────────────────┘       │
+│            │          │              │              │                         │
+│   ┌────────▼────┐ ┌───▼──────┐ ┌────▼─────┐ ┌─────▼──────┐                 │
+│   │   OSINT     │ │ BREACH   │ │PERCEPTION│ │REMEDIATION │                  │
+│   │   ENGINE    │ │ MONITOR  │ │   AI     │ │  ENGINE    │                  │
+│   │             │ │          │ │          │ │            │                   │
+│   │• SpiderFoot │ │• HIBP    │ │• spaCy   │ │• Playwright│                  │
+│   │• Sherlock   │ │• DeHashed│ │• GLiNER  │ │• CAPTCHA   │                  │
+│   │• Maigret    │ │• Snusbase│ │• RoBERTa │ │  Solvers   │                  │
+│   │• Holehe     │ │• LeakChk │ │• HateBERT│ │• DSAR Gen  │                  │
+│   │• PhoneInfoga│ │• IntelX  │ │• Risk    │ │• Deindex   │                  │
+│   │• Scrapy     │ │          │ │  Scorer  │ │• OAuth DEL │                  │
+│   └──────┬──────┘ └────┬─────┘ └────┬─────┘ └─────┬──────┘                  │
+│          │             │            │              │                          │
+│   ┌──────▼─────────────▼────────────▼──────────────▼──────┐                  │
+│   │          MESSAGE BUS (RabbitMQ / Kafka)                │                  │
+│   │          • Topic: raw-discoveries                      │                  │
+│   │          • Topic: nlp-results                          │                  │
+│   │          • Topic: deletion-events                      │                  │
+│   └──────────────────────┬────────────────────────────────┘                   │
+│                          │                                                    │
+│   ┌──────────────────────▼────────────────────────────────┐                  │
+│   │              CONTINUOUS MONITORING                     │                  │
+│   │  • Cron Re-Scanner (weekly delta detection)            │                  │
+│   │  • Regression Detector (re-listing watchdog)           │                  │
+│   │  • Alert & Triage Engine (severity rules)              │                  │
+│   └───────────────────────────────────────────────────────┘                   │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+                                                   │
+┌──────────────────────────────────────────────────┼───────────────────────────┐
+│                     INFRASTRUCTURE LAYER                                     │
+│                                                                              │
+│   ┌──────────────┐  ┌──────────────┐  ┌────────────┐  ┌──────────────┐      │
+│   │  PostgreSQL   │  │ Elasticsearch│  │   Redis    │  │    MinIO      │     │
+│   │  + pgcrypto   │  │ / Meilisearch│  │  • Cache   │  │  (S3-compat)  │    │
+│   │  • Metadata   │  │  • Full-text │  │  • Rate    │  │  • Encrypted  │    │
+│   │  • Audit Logs │  │    indexing  │  │    Limit   │  │    Reports    │    │
+│   │  • Encrypted  │  │  • Mention   │  │  • Session │  │  • Evidence   │    │
+│   │    blobs      │  │    search    │  │    store   │  │    Screenshots│    │
+│   └──────────────┘  └──────────────┘  └────────────┘  └──────────────┘      │
+│                                                                              │
+│   ┌──────────────┐  ┌──────────────┐  ┌─────────────────────────────┐       │
+│   │  Grafana      │  │  Prometheus  │  │  HashiCorp Vault            │       │
+│   │  • Dashboards │  │  • Metrics   │  │  • API Keys & Secrets       │       │
+│   │  • Alerts     │  │  • Health    │  │  • OAuth Tokens             │       │
+│   └──────────────┘  └──────────────┘  └─────────────────────────────┘       │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Simplified Component Interaction
+
+```
+  User Seeds (email, name, phone)
+         │
+         ▼
+  ┌──────────────┐     SHA-256      ┌──────────────────┐
+  │ Identity     │────────────────▶ │ OSINT Discovery   │
+  │ Seeder       │   (hashed only)  │ (3,000+ sites)    │
+  └──────────────┘                  └────────┬──────────┘
+                                             │ raw mentions
+                                    ┌────────▼──────────┐
+                                    │ Message Queue      │
+                                    │ (RabbitMQ)         │
+                                    └────────┬──────────┘
+                                             │
+                                    ┌────────▼──────────┐
+                                    │ NLP Pipeline       │
+                                    │ NER → Disambiguate │
+                                    │ → Sentiment → Risk │
+                                    └────────┬──────────┘
+                                             │ scored results
+                                    ┌────────▼──────────┐
+                                    │ Risk Dashboard     │
+                                    │ (0-100 Score)      │
+                                    └────────┬──────────┘
+                                             │ user approves
+                                    ┌────────▼──────────┐
+                                    │ Remediation Engine  │
+                                    │ • Opt-out forms    │
+                                    │ • DSAR emails      │
+                                    │ • API deletions    │
+                                    │ • Deindexing       │
+                                    └────────┬──────────┘
+                                             │
+                                    ┌────────▼──────────┐
+                                    │ Re-Monitor Loop    │
+                                    │ Weekly delta scans │
+                                    └───────────────────┘
+```
+
+---
+
+## 🛠️ Tech Stack
+
+### Frontend (Current Build — v1.0.0-alpha)
+
+| Technology | Version | Purpose |
+|---|---|---|
+| **React** | 19.2.8 | UI component framework |
+| **Vite** | 8.3.0 | Build tool & dev server |
+| **React Router DOM** | 7.18.4 | Client-side routing |
+| **Recharts** | 3.10.1 | Data visualization (charts, graphs) |
+| **Lucide React** | 1.56.0 | Icon library |
+| **Inter + JetBrains Mono** | — | Typography (Google Fonts) |
+| **Vanilla CSS** | — | Custom design system with CSS custom properties |
+
+### Backend (Planned — Phase 2+)
+
+| Technology | Purpose |
+|---|---|
+| **Node.js / Express** or **FastAPI** | REST API server |
+| **Temporal.io** | Durable workflow orchestration |
+| **RabbitMQ** → **Kafka** | Event-driven message broker |
+| **PostgreSQL + pgcrypto** | Encrypted metadata & audit logs |
+| **Elasticsearch / Meilisearch** | Full-text search indexing |
+| **Redis** | Caching, rate limiting, sessions |
+| **MinIO** | S3-compatible encrypted object storage |
+| **Docker / Kubernetes** | Container orchestration |
+| **Traefik / Kong** | API gateway |
+| **HashiCorp Vault** | Secrets management |
+| **Grafana + Prometheus** | Monitoring & alerting |
+
+### OSINT & AI Tooling (Planned Integration)
+
+| Category | Tools |
+|---|---|
+| **Username Enumeration** | Sherlock, Maigret, WhatsMyName |
+| **OSINT Framework** | SpiderFoot HX, Recon-ng |
+| **Breach Monitoring** | HIBP API, DeHashed, Snusbase, LeakCheck |
+| **Email Discovery** | theHarvester, Hunter.io, Holehe |
+| **Phone OSINT** | PhoneInfoga, NumVerify |
+| **Web Scraping** | Playwright, Scrapy |
+| **NER** | spaCy, GLiNER |
+| **Sentiment Analysis** | `cardiffnlp/twitter-roberta-base-sentiment-latest` |
+| **Toxicity Detection** | Google Perspective API, HateBERT |
+| **CAPTCHA Solving** | CapSolver, 2Captcha |
+| **LLM Summarization** | Gemini API / Mistral (local) |
+
+---
+
+## 📁 Project Structure
+
+```
+identitylens/
+├── public/                          # Static assets
+│   └── vite.svg                     # Favicon
+├── src/
+│   ├── components/                  # Reusable UI components
+│   │   ├── Header.jsx               # Top navigation bar with search & notifications
+│   │   ├── ScoreRing.jsx            # Animated circular exposure score indicator
+│   │   └── Sidebar.jsx              # Main sidebar navigation with sections & badges
+│   ├── data/
+│   │   └── mockData.js              # Simulated OSINT results, breaches, sentiment data
+│   ├── pages/
+│   │   └── DashboardPage.jsx        # Main dashboard: stats, charts, activity feed, table
+│   ├── App.jsx                      # Root component with routing & layout
+│   ├── App.css                      # App-level styles (Vite default — to be merged)
+│   ├── index.css                    # 🎨 Core design system (tokens, animations, layouts)
+│   └── main.jsx                     # Entry point with BrowserRouter
+├── index.html                       # HTML template with SEO meta tags & fonts
+├── package.json                     # Dependencies & scripts
+├── vite.config.js                   # Vite configuration
+└── README.md                        # 📖 This file
+```
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- **Node.js** ≥ 18.x (tested on v24.21.0)
+- **npm** ≥ 9.x (tested on v11.19.0)
+
+### Installation
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/your-username/identitylens.git
+cd identitylens
+
+# 2. Install dependencies
+npm install
+
+# 3. Start the development server
+npm run dev
+```
+
+The app will be available at **http://localhost:5173**
+
+### Available Scripts
+
+| Command | Description |
+|---|---|
+| `npm run dev` | Start Vite development server with HMR |
+| `npm run build` | Build production bundle to `dist/` |
+| `npm run preview` | Preview the production build locally |
+| `npm run lint` | Run OxLint for code quality checks |
+
+---
+
+## ⚙️ Configuration
+
+### Environment Variables (Planned)
+
+```env
+# OSINT API Keys
+VITE_HIBP_API_KEY=your_hibp_key
+VITE_DEHASHED_API_KEY=your_dehashed_key
+VITE_INTELX_API_KEY=your_intelx_key
+VITE_HUNTER_API_KEY=your_hunter_key
+
+# CAPTCHA Solving
+VITE_CAPSOLVER_API_KEY=your_capsolver_key
+
+# LLM / AI
+VITE_GEMINI_API_KEY=your_gemini_key
+
+# Database (Backend)
+DATABASE_URL=postgresql://user:pass@localhost:5432/identitylens
+REDIS_URL=redis://localhost:6379
+
+# Encryption
+ENCRYPTION_ALGORITHM=aes-256-gcm
+KDF_ALGORITHM=argon2id
+```
+
+---
+
+## 🔧 Core Modules
+
+### 1. Identity Seeder
+```
+Input: email, legal name, phone, usernames
+   │
+   ├── SHA-256 hash all PII for breach lookups
+   ├── HMAC tokens for platform-specific queries
+   └── AES-256-GCM encrypt raw seeds (client-side only)
+```
+
+### 2. OSINT Discovery Engine
+```
+Hashed Seeds ──▶ Parallel Scanners
+                  ├── Sherlock / Maigret (username enum, 3,000+ sites)
+                  ├── HIBP / DeHashed (breach databases)
+                  ├── Holehe (email registrations)
+                  ├── PhoneInfoga (phone exposure)
+                  ├── SpiderFoot (automated recon)
+                  └── Playwright / Scrapy (dynamic scraping)
+```
+
+### 3. Perception AI Pipeline
+```
+Raw Mentions ──▶ spaCy Preprocessing
+                  ├── GLiNER Zero-Shot NER
+                  ├── Entity Disambiguation (context-window)
+                  ├── RoBERTa Aspect-Based Sentiment
+                  ├── HateBERT Toxicity Scoring
+                  └── Composite Risk Score Calculator
+                       Formula: 0.4×breach + 0.3×broker + 0.2×sentiment + 0.1×shadow
+```
+
+### 4. Remediation Engine
+```
+Flagged Results ──▶ Deletion Orchestrator (Temporal.io)
+                     ├── [A] Headless Opt-Out (Playwright + CAPTCHA solver)
+                     ├── [B] DSAR Email Generator (GDPR/CCPA/DPDP templates)
+                     ├── [C] OAuth API Deletion (DELETE /posts/{id})
+                     └── [D] Search Deindexing (Google/Bing APIs)
+```
+
+### 5. Continuous Re-Monitor
+```
+Weekly Cron ──▶ Re-scan all seeds
+                  ├── Delta comparison (new vs. previous results)
+                  ├── If re-listed → auto-retrigger deletion
+                  └── If clean → log & update score
+```
+
+---
+
+## 🔄 Data Flow Pipeline
+
+```
+ ┌─────────┐    ┌───────────┐    ┌───────────┐    ┌──────────┐    ┌──────────┐
+ │  SEED   │───▶│  DISCOVER │───▶│  ANALYZE  │───▶│  SCORE   │───▶│ REMEDIATE│
+ │         │    │           │    │           │    │          │    │          │
+ │ Hash PII│    │ OSINT +   │    │ NER +     │    │ 0-100    │    │ Opt-out  │
+ │ Encrypt │    │ Breach +  │    │ Sentiment │    │ Composite│    │ DSAR     │
+ │ Seeds   │    │ Scrape    │    │ + Toxicity│    │ Risk     │    │ Delete   │
+ └─────────┘    └───────────┘    └───────────┘    └──────────┘    └──────────┘
+                                                                       │
+                                                                       ▼
+                                                                 ┌──────────┐
+                                                                 │RE-MONITOR│
+                                                                 │          │
+                                                                 │ Weekly   │
+                                                                 │ Delta    │
+                                                                 │ Scans    │
+                                                                 └──────────┘
+```
+
+---
+
+## 🔐 Security & Privacy
+
+### Zero-Knowledge Architecture
+
+| Layer | Mechanism |
+|---|---|
+| **Input Encryption** | All PII encrypted with AES-256-GCM in-browser via Web Crypto API |
+| **Key Derivation** | Argon2id(password, random_salt) → master key (never transmitted) |
+| **Breach Queries** | SHA-256 hashed emails/passwords — raw values never leave client |
+| **Server Storage** | Encrypted blobs only; server cannot decrypt without user's key |
+| **Key Recovery** | Shamir's Secret Sharing (3-of-5 shares across user devices) |
+| **Transport** | TLS 1.3 enforced on all API communications |
+| **Secrets** | API keys managed via HashiCorp Vault (not env files in production) |
+
+### Regulatory Compliance
+
+| Framework | Coverage |
+|---|---|
+| **GDPR** Article 17 | Right to Erasure (EU) |
+| **CCPA** §1798.105 | Right to Delete (California) |
+| **DPDP Act** §12 | Right to Erasure (India) |
+| **LGPD** Article 18 | Right to Deletion (Brazil) |
+| **PIPEDA** | Right to Withdraw (Canada) |
+| **DELETE Act** (SB 362) | California DROP Portal Integration |
+
+---
+
+## 🗑️ Remediation Engine
+
+### Supported Deletion Methods
+
+| Method | Targets | Automation Level |
+|---|---|---|
+| **Headless Browser Opt-Out** | Data brokers (Spokeo, WhitePages, etc.) | Fully automated (Playwright + CAPTCHA) |
+| **Direct API Revocation** | OAuth-linked platforms (X, Reddit, LinkedIn) | Fully automated (REST DELETE) |
+| **DSAR Email Generator** | Any entity subject to GDPR/CCPA/DPDP | Semi-automated (template + send) |
+| **Search Deindexing** | Google, Bing | Automated (Search Console/Webmaster API) |
+| **State Registry** | California DROP, EU EDPB | Automated (form filing) |
+
+### Deletion Workflow States
+
+```
+  QUEUED → SUBMITTED → IN PROGRESS → AWAITING CONFIRMATION → COMPLETED
+                                  └─▶ FAILED (retry 3x) → MANUAL QUEUE
+```
+
+---
+
+## 📡 API Reference (Planned)
+
+### Core Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/v1/scan/init` | Initialize a new identity scan |
+| `GET` | `/api/v1/scan/:id/status` | Get scan progress & results |
+| `GET` | `/api/v1/score/:userId` | Get composite exposure score |
+| `GET` | `/api/v1/breaches/:hash` | Query breach database by SHA-256 hash |
+| `POST` | `/api/v1/deletions/submit` | Submit a new deletion request |
+| `GET` | `/api/v1/deletions/:id` | Track deletion request status |
+| `GET` | `/api/v1/sentiment/:userId` | Get sentiment analysis results |
+| `POST` | `/api/v1/reports/generate` | Generate PDF exposure report |
+| `GET` | `/api/v1/monitors/:userId` | List active re-monitoring jobs |
+
+---
+
+## 🗺️ Roadmap
+
+### Phase 1 — Core Scanner & Dashboard ✅ *IN PROGRESS*
+- [x] Project scaffolding (Vite + React)
+- [x] Design system (CSS custom properties, dark mode, glassmorphism)
+- [x] Sidebar navigation with active states
+- [x] Header with search & notifications
+- [x] Animated Score Ring component
+- [x] Dashboard page (stats, charts, sentiment, activity feed, table)
+- [x] Mock OSINT data layer
+- [ ] Scan initiation page
+- [ ] OSINT results page
+- [ ] Breach monitor page
+- [ ] Sentiment analysis page
+- [ ] Shadow accounts page
+- [ ] Deletion queue page
+- [ ] Reports page
+- [ ] Activity log page
+- [ ] Settings page
+
+### Phase 2 — NLP & Perception AI
+- [ ] spaCy NER pipeline integration
+- [ ] Entity disambiguation engine
+- [ ] RoBERTa aspect-based sentiment
+- [ ] Toxicity scoring (Perspective API)
+- [ ] Risk score calculator
+- [ ] LLM-powered report narratives
+
+### Phase 3 — Automated Remediation
+- [ ] Playwright data broker opt-out scripts
+- [ ] CAPTCHA solver integration (CapSolver)
+- [ ] DSAR template engine (multi-jurisdiction)
+- [ ] OAuth platform revocation
+- [ ] Email verification auto-handler
+- [ ] Temporal.io workflow orchestration
+
+### Phase 4 — Continuous Monitoring & Scale
+- [ ] Weekly re-scan scheduler
+- [ ] Delta detection & regression alerts
+- [ ] Search deindexing automation
+- [ ] Kafka message broker migration
+- [ ] Kubernetes deployment
+- [ ] Grafana monitoring dashboards
+
+---
+
+## 📝 Changelog
+
+### v1.0.0-alpha — 2026-10-13 (Current)
+**Initial Release — Dashboard Foundation**
+
+#### Added
+- ✅ Vite + React project scaffolding
+- ✅ Complete CSS design system with 50+ design tokens
+  - Dark mode palette, glassmorphism, ambient gradients
+  - Animation keyframes (fadeInUp, scaleIn, shimmer, pulse)
+  - Responsive grid layouts, stat cards, badges, tables
+  - Custom scrollbar, timeline, progress bars
+- ✅ `Sidebar` component — 4 nav sections, active state indicators, badges, user profile
+- ✅ `Header` component — Search bar, notifications with dot indicator, help button
+- ✅ `ScoreRing` component — Animated SVG circular gauge with color-coded severity
+- ✅ `DashboardPage` — Full dashboard with:
+  - 4 stat cards (Exposures, Breaches, Deletions, Monitors) with trend indicators
+  - Exposure trend AreaChart (5-month history)
+  - Animated Digital Exposure Score ring
+  - Sentiment snapshot BarChart (positive/neutral/negative)
+  - Activity feed timeline with typed events
+  - Recent discoveries data table with risk/status badges
+- ✅ Mock data layer — Comprehensive simulated OSINT results across 10 platforms, 3 breaches, 6 sentiment mentions, 6 deletion queue items, 16 username results, 7 activity events
+- ✅ Client-side routing (React Router DOM)
+- ✅ Google Fonts integration (Inter + JetBrains Mono)
+- ✅ SEO meta tags and proper HTML structure
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/my-feature`
+3. Commit your changes: `git commit -m 'feat: add new feature'`
+4. Push to the branch: `git push origin feature/my-feature`
+5. Open a Pull Request
+
+### Commit Convention
+```
+feat:     New feature
+fix:      Bug fix
+docs:     Documentation update
+style:    Code style (formatting, no logic change)
+refactor: Code refactoring
+test:     Adding tests
+chore:    Build/tooling changes
+```
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+
+---
+
+<div align="center">
+
+**Built with 🔍 by the IdentityLens Team**
+
+*Protecting digital identities, one scan at a time.*
+
+</div>

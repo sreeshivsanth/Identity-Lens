@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  # 1. IdentityLens Frontend (React + Vite + Nginx)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - identitylens-net
+
+  # 2. IdentityLens Core Engine API (FastAPI)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    depends_on:
+      - redis
+    networks:
+      - identitylens-net
+
+  # 3. Asynchronous Worker Daemon (Celery)
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A tasks.celery_app worker --loglevel=info --concurrency=4
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    depends_on:
+      - redis
+    networks:
+      - identitylens-net
+
+  # 4. Message Broker & Key-Value Store (Redis)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - identitylens-net
+
+  # 5. Metrics Collection (Prometheus)
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - identitylens-net
+
+networks:
+  identitylens-net:
+    driver: bridge
+
+volumes:
+  redis-data:
