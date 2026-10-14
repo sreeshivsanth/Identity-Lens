@@ -7,7 +7,7 @@
 export function generateFindingsForPersona(target) {
   const name = target.fullName?.trim() || 'Verified Target';
   const email = target.email?.trim() || 'target@identitylens.io';
-  const username = target.username?.trim() || name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+  const username = target.username?.trim() || (email.includes('@') ? email.split('@')[0].replace(/[^a-zA-Z0-9._-]/g, '') : name.toLowerCase().replace(/[^a-z0-9]/g, '_'));
   const phone = target.phone?.trim() || '+1 (555) 019-2834';
   const domain = target.domain?.trim() || `${username}.dev`;
   const aliasesList = target.aliases

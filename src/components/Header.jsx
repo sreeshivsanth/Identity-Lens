@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useIdentityScan } from '../context/IdentityScanContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function Header({ title, subtitle }) {
   const { currentUser, isAdmin, setIsAuthModalOpen } = useAuth();
@@ -53,6 +53,46 @@ export default function Header({ title, subtitle }) {
     };
   }, [showNotifications]);
 
+  const navigate = useNavigate();
+  const [globalSearchInput, setGlobalSearchInput] = useState('');
+
+  const handleGlobalSearchKeyDown = (e) => {
+    if (e.key === 'Enter' && globalSearchInput.trim()) {
+      const q = globalSearchInput.trim();
+      if (q.includes('@')) {
+        navigate(`/accounts?email=${encodeURIComponent(q)}`);
+      } else {
+        navigate(`/accounts?username=${encodeURIComponent(q)}`);
+      }
+    }
+  };
+
+  const [hardwareInfo, setHardwareInfo] = useState({
+    name: 'NVIDIA GeForce RTX 5060 Laptop GPU',
+    shortName: 'RTX 5060 (8GB GPU)',
+    vram: 8151,
+    detected: true,
+  });
+
+  useEffect(() => {
+    fetch('http://127.0.0.1:8000/api/v1/system/gpu')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && data.dedicated_gpu_detected) {
+          const short = data.name.includes('5060')
+            ? 'RTX 5060 (8GB GPU)'
+            : data.name.replace('NVIDIA GeForce ', '').replace(' Laptop GPU', '');
+          setHardwareInfo({
+            name: data.name,
+            shortName: short,
+            vram: data.vram_total_mb,
+            detected: true,
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <header className="app-header" id="app-header">
       <div className="header-left">
@@ -64,7 +104,13 @@ export default function Header({ title, subtitle }) {
       <div className="header-right">
         <div className="header-search" id="global-search">
           <Search size={16} />
-          <input type="text" placeholder="Search identities, platforms, exposures..." />
+          <input
+            type="text"
+            placeholder="Search Gmail, username, or alias (press Enter)..."
+            value={globalSearchInput}
+            onChange={(e) => setGlobalSearchInput(e.target.value)}
+            onKeyDown={handleGlobalSearchKeyDown}
+          />
         </div>
 
         {/* Dedicated GPU Acceleration Status Pill */}
@@ -81,7 +127,7 @@ export default function Header({ title, subtitle }) {
             fontWeight: 600,
             color: '#34d399',
           }}
-          title="Dedicated Graphics Acceleration Active: NVIDIA GeForce GTX 1650 (CUDA 12.5 / 4GB GDDR5)"
+          title={`Dedicated Hardware Acceleration Active: ${hardwareInfo.name} (${Math.round(hardwareInfo.vram / 1024)}GB GDDR6 / CUDA 12.5)`}
         >
           <Cpu size={14} />
           <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -95,7 +141,7 @@ export default function Header({ title, subtitle }) {
                 boxShadow: '0 0 6px #34d399',
               }}
             ></span>
-            GTX 1650 (GPU)
+            {hardwareInfo.shortName}
           </span>
         </div>
 

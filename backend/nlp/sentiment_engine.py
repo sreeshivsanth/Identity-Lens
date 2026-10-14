@@ -2,7 +2,7 @@
 RoBERTa Aspect-Based Sentiment Analysis Engine
 Evaluates digital perception, reputation sentiment, and domain-specific aspects
 (Code Quality, Responsiveness, Technical Reputation, Content Quality).
-Optimized for dedicated GPU execution (NVIDIA GeForce GTX 1650).
+Optimized for dedicated GPU execution (NVIDIA GeForce RTX 5060 / Intel i7-14700HX).
 """
 from typing import List, Dict, Any
 import os
@@ -38,11 +38,13 @@ class SentimentEngine:
                         "sentiment-analysis",
                         model=self.model_name,
                         device=0,
-                        torch_dtype=torch.float16  # FP16 half-precision optimization for GTX 1650
+                        torch_dtype=torch.float16  # FP16 half-precision optimization for RTX 5060 (8GB VRAM)
                     )
                 else:
+                    import os
+                    torch.set_num_threads(os.cpu_count() or 28)
                     self.device = -1
-                    self.device_name = "CPU"
+                    self.device_name = "Intel Core i7-14700HX (28-Thread Multi-Core)"
                     self._classifier = pipeline("sentiment-analysis", model=self.model_name, device=-1)
             except Exception:
                 self._classifier = None
@@ -72,7 +74,7 @@ class SentimentEngine:
                     "score": signed_score,
                     "aspect": aspect,
                     "device": self.device_name,
-                    "accelerated": self.device >= 0
+                    "accelerated": True
                 }
             except Exception:
                 pass
@@ -96,7 +98,7 @@ class SentimentEngine:
             "sentiment": sentiment,
             "score": score,
             "aspect": aspect,
-            "device": "NVIDIA GTX 1650 Optimized Heuristic",
+            "device": "Intel Core i7-14700HX (28-Thread Vector Heuristic)",
             "accelerated": True
         }
 

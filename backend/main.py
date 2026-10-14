@@ -112,25 +112,31 @@ def require_admin(user: dict = Depends(get_current_user)):
 
 # --- Endpoints ---
 
-from config import settings, get_gpu_diagnostics
+from config import settings, get_gpu_diagnostics, get_system_specs
 
 @app.get("/health")
 def health_check():
-    gpu_telemetry = get_gpu_diagnostics()
+    system_telemetry = get_system_specs()
     return {
         "status": "healthy",
         "service": settings.APP_NAME,
         "version": settings.APP_VERSION,
         "zero_knowledge_enforced": settings.ENFORCE_EPHEMERAL_STORAGE,
         "admin_configured": settings.ADMIN_ROOT_USERNAME,
-        "gpu_acceleration": gpu_telemetry,
+        "gpu_acceleration": system_telemetry.get("gpu"),
+        "system_specs": system_telemetry,
         "timestamp": time.time(),
     }
 
 @app.get("/api/v1/system/gpu")
 def get_system_gpu():
-    """Returns dedicated GPU status, VRAM, and driver details for NVIDIA GeForce GTX 1650."""
+    """Returns dedicated GPU status, VRAM, and driver details for NVIDIA GeForce RTX 5060."""
     return get_gpu_diagnostics()
+
+@app.get("/api/v1/system/hardware")
+def get_system_hardware():
+    """Returns multi-core CPU, RAM, and GPU hardware specs for Intel Core i7-14700HX + RTX 5060."""
+    return get_system_specs()
 
 # --- Auth Endpoints ---
 
@@ -200,15 +206,46 @@ def get_admin_users(authorization: Optional[str] = Header(None)):
 # --- OSINT & Remediation Endpoints ---
 
 @app.get("/api/v1/recon/social")
-async def probe_social_handles(username: str):
-    """Probes top developer, messaging, and social platforms live for account existence."""
-    platforms = await social_crawler.probe_all(username)
-    return {
-        "username": username,
-        "total_probed": len(social_crawler.sites),
-        "found_count": len(platforms),
-        "platforms": platforms,
-    }
+async def probe_social_handles(
+    username: Optional[str] = None,
+    email: Optional[str] = None,
+    query: Optional[str] = None
+):
+    """Probes top developer, messaging, and social platforms live by username OR Gmail / email."""
+    target = (query or email or username or "").strip()
+    if not target:
+        raise HTTPException(status_code=400, detail="Target username, email, or query string is required")
+
+    if "@" in target:
+        intel = await social_crawler.probe_email_intel(target)
+        return {
+            "query": target,
+            "email": target,
+            "is_email": True,
+            "is_gmail": intel.get("is_gmail", False),
+            "total_probed": len(social_crawler.sites) + 3,
+            "found_count": len(intel.get("platforms", [])),
+            "platforms": intel.get("platforms", []),
+            "email_intel": intel,
+        }
+    else:
+        platforms = await social_crawler.probe_all(target)
+        return {
+            "username": target,
+            "is_email": False,
+            "total_probed": len(social_crawler.sites),
+            "found_count": len(platforms),
+            "platforms": platforms,
+        }
+
+@app.get("/api/v1/recon/email")
+async def probe_email_intel_endpoint(email: str):
+    """Comprehensive OSINT reconnaissance on a Gmail or standard email address."""
+    clean_email = (email or "").strip()
+    if not clean_email or "@" not in clean_email:
+        raise HTTPException(status_code=400, detail="A valid email address containing '@' is required")
+    intel = await social_crawler.probe_email_intel(clean_email)
+    return intel
 
 @app.get("/api/v1/recon/breaches")
 async def probe_email_breaches(email: str):
@@ -287,8 +324,9 @@ async def execute_live_scan(req: LiveScanRequest, authorization: Optional[str] =
 
     username = req.username or (req.email.split("@")[0] if "@" in req.email else req.name.lower().replace(" ", "_"))
     
-    # Run live queries concurrently
-    platforms = await social_crawler.probe_all(username)
+    # Run live queries concurrently across handles and email/Gmail footprint
+    probe_query = req.email.strip() if req.email and "@" in req.email else username
+    platforms = await social_crawler.probe_all(probe_query)
     breaches = await check_email_breaches_live(req.email)
 
     # Compile genuine exposure score

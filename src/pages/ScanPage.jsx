@@ -257,27 +257,33 @@ export default function ScanPage() {
 
                 <div className="form-group">
                   <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    Primary Email Address {!isAdmin && <Lock size={12} style={{ color: '#60a5fa' }} />}
+                    Primary Email Address (Gmail / Corporate) {!isAdmin && <Lock size={12} style={{ color: '#60a5fa' }} />}
                   </label>
                   <input
                     type="email"
                     className="form-input"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onChange={(e) => {
+                      const newEmail = e.target.value;
+                      const prefix = newEmail.includes('@') ? newEmail.split('@')[0].replace(/[^a-zA-Z0-9._-]/g, '') : '';
+                      setFormData({
+                        ...formData,
+                        email: newEmail,
+                        username: !formData.username || formData.username === (formData.email.split('@')[0] || '') ? prefix : formData.username,
+                      });
+                    }}
                     readOnly={!isAdmin}
                     style={
                       !isAdmin
                         ? { background: 'rgba(255, 255, 255, 0.04)', color: 'var(--text-secondary)', cursor: 'not-allowed' }
                         : {}
                     }
-                    placeholder="e.g. user@example.com"
+                    placeholder="e.g. user@gmail.com"
                     required
                   />
-                  {!isAdmin && (
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px', display: 'block' }}>
-                      Locked to your authenticated Google account.
-                    </span>
-                  )}
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px', display: 'block' }}>
+                    {!isAdmin ? 'Locked to your authenticated Google account.' : 'Scans Gmail/Email (breaches, Gravatar, leaked accounts) & derived handles concurrently.'}
+                  </span>
                 </div>
               </div>
 
@@ -371,7 +377,7 @@ export default function ScanPage() {
                     { key: 'breaches', label: 'Credential Breach Feeds (HaveIBeenPwned & DeHashed)' },
                     { key: 'social', label: 'Shadow Account Enumeration (400+ Platforms)' },
                     { key: 'darkweb', label: 'Dark Web Leaks & Tor Onion Monitors' },
-                    { key: 'sentiment', label: 'Perception AI (RoBERTa Sentiment on GTX 1650)' },
+                    { key: 'sentiment', label: 'Perception AI (RoBERTa Sentiment on RTX 5060 / 28-Thread CPU)' },
                   ].map((mod) => (
                     <label
                       key={mod.key}

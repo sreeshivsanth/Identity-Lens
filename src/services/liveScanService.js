@@ -129,9 +129,9 @@ export async function runLiveIdentityScan(target, onProgress) {
   }
 
   // Client-Direct Live Execution Fallback
-  log(`[SOCIAL] Dispatching asynchronous multi-platform prober across GitHub, Reddit, Telegram, etc...`);
-  const socialRes = await probePlatformsLive(username, (platform, found, status) => {
-    log(`[SOCIAL] ${platform}: ${found ? `FOUND (${status})` : 'Not Found'}`);
+  log(`[SOCIAL] Dispatching asynchronous reconnaissance across Gmail/Email and social handles...`);
+  const socialRes = await probePlatformsLive({ username, email }, (logMsg) => {
+    if (typeof logMsg === 'string') log(logMsg);
   });
 
   const discoveredPlatforms = socialRes.filter((p) => p.found);

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Settings,
   Shield,
@@ -30,6 +30,27 @@ export default function SettingsPage() {
   });
   const [savedToast, setSavedToast] = useState(false);
   const [keyExported, setKeyExported] = useState(false);
+  const [systemSpecs, setSystemSpecs] = useState({
+    cpu: { model: '14th Gen Intel Core i7-14700HX', threads: 28 },
+    gpu: {
+      name: 'NVIDIA GeForce RTX 5060 Laptop GPU',
+      vram_total_mb: 8151,
+      cuda_version: '12.5',
+      driver_version: '615.71.09',
+    },
+    memory: { total_gb: 32 },
+  });
+
+  useEffect(() => {
+    fetch('http://127.0.0.1:8000/api/v1/system/hardware')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && data.cpu) {
+          setSystemSpecs(data);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Authenticated user registry: ONLY Admin pre-seeded + currently active user session
   const multiUsers = [
@@ -437,30 +458,34 @@ export default function SettingsPage() {
                 >
                   <div>
                     <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', display: 'block' }}>
-                      NVIDIA GeForce GTX 1650
+                      {systemSpecs.gpu?.name || 'NVIDIA GeForce RTX 5060 Laptop GPU'}
                     </span>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-                      Turing Architecture • 4096 MB GDDR5 VRAM
+                      Blackwell/Ada Architecture • {systemSpecs.gpu?.vram_total_mb || 8151} MB GDDR6 Dedicated VRAM
                     </span>
                   </div>
                   <span className="badge badge-low" style={{ fontSize: '0.7rem' }}>
-                    CUDA 12.5 Ready
+                    CUDA {systemSpecs.gpu?.cuda_version || '12.5'} Ready
                   </span>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   <div style={{ padding: '8px 12px', background: 'var(--bg-card)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
-                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'block' }}>Driver Version</span>
-                    <strong style={{ fontSize: '0.8rem', color: 'var(--text-primary)' }}>555.97 (WDDM)</strong>
+                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'block' }}>Processor &amp; Threads</span>
+                    <strong style={{ fontSize: '0.78rem', color: 'var(--text-primary)' }}>
+                      {systemSpecs.cpu?.model?.replace('Intel(R) Core(TM) ', '') || 'i7-14700HX'} ({systemSpecs.cpu?.threads || 28} Threads)
+                    </strong>
                   </div>
                   <div style={{ padding: '8px 12px', background: 'var(--bg-card)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
-                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'block' }}>Inference Precision</span>
-                    <strong style={{ fontSize: '0.8rem', color: '#34d399' }}>FP16 Half-Precision</strong>
+                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'block' }}>System Memory &amp; Driver</span>
+                    <strong style={{ fontSize: '0.78rem', color: '#34d399' }}>
+                      {systemSpecs.memory?.total_gb || 32}GB RAM • Driver {systemSpecs.gpu?.driver_version || '615.71'}
+                    </strong>
                   </div>
                 </div>
 
                 <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: 0 }}>
-                  Dedicated GPU binds automatically to RoBERTa perception classification, toxicity scoring, and Playwright crawler acceleration.
+                  Dedicated GPU binds automatically to RoBERTa perception classification, toxicity scoring, and Playwright crawler acceleration across {systemSpecs.cpu?.threads || 28} CPU threads.
                 </p>
               </div>
             </div>

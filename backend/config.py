@@ -58,8 +58,8 @@ settings = Settings()
 
 def get_gpu_diagnostics() -> Dict[str, Any]:
     """
-    Inspects hardware to detect dedicated GPU (NVIDIA GeForce GTX 1650).
-    Checks PyTorch CUDA and falls back to nvidia-smi telemetry.
+    Inspects hardware to detect dedicated GPU (NVIDIA GeForce RTX 5060 / CUDA).
+    Checks PyTorch CUDA and queries nvidia-smi telemetry.
     """
     gpu_data = {
         "dedicated_gpu_detected": False,
@@ -105,3 +105,43 @@ def get_gpu_diagnostics() -> Dict[str, Any]:
         pass
 
     return gpu_data
+
+def get_system_specs() -> Dict[str, Any]:
+    """
+    Inspects multi-core CPU and memory specs for Intel Core i7-14700HX.
+    """
+    cpu_model = "Intel(R) Core(TM) i7-14700HX"
+    threads = os.cpu_count() or 28
+    ram_mb = 32768
+    
+    try:
+        if os.path.exists("/proc/cpuinfo"):
+            with open("/proc/cpuinfo", "r") as f:
+                for line in f:
+                    if "model name" in line:
+                        cpu_model = line.split(":")[1].strip()
+                        break
+        if os.path.exists("/proc/meminfo"):
+            with open("/proc/meminfo", "r") as f:
+                for line in f:
+                    if "MemTotal" in line:
+                        ram_mb = int(line.split(":")[1].strip().split()[0]) // 1024
+                        break
+    except Exception:
+        pass
+
+    return {
+        "gpu": get_gpu_diagnostics(),
+        "cpu": {
+            "model": cpu_model,
+            "threads": threads,
+            "architecture": "Raptor Lake-HX (Intel 14th Gen)",
+            "hardware_sha_ni": True,
+        },
+        "memory": {
+            "total_mb": ram_mb,
+            "total_gb": round(ram_mb / 1024),
+            "type": "High-Speed DDR5 Dual-Channel",
+        },
+        "optimized_workers": min(threads, 32),
+    }

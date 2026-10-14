@@ -347,9 +347,18 @@ export default function BreachPage() {
                   </p>
                 </div>
               </div>
-              <span className={`badge ${liveEmailResult.count > 0 ? 'badge-critical' : 'badge-low'}`}>
-                {liveEmailResult.count > 0 ? `${liveEmailResult.count} Leaks` : 'Clean Baseline ✓'}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className={`badge ${liveEmailResult.count > 0 ? 'badge-critical' : 'badge-low'}`}>
+                  {liveEmailResult.count > 0 ? `${liveEmailResult.count} Leaks` : 'Clean Baseline ✓'}
+                </span>
+                <Link
+                  to={`/accounts?email=${encodeURIComponent(liveEmailResult.email)}`}
+                  className="btn btn-secondary btn-sm"
+                  style={{ fontSize: '0.72rem' }}
+                >
+                  Trace Accounts via Gmail ➔
+                </Link>
+              </div>
             </div>
           )}
         </div>

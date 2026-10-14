@@ -86,21 +86,52 @@ export const MONITORED_PLATFORMS = [
     checkType: 'status_200',
     description: 'Public boards and visual collections.',
   },
+  {
+    platform: 'Instagram',
+    category: 'Social Media',
+    profileUrl: (u) => `https://www.instagram.com/${u}/`,
+    probeUrl: (u) => `https://www.instagram.com/${u}/`,
+    checkType: 'instagram_profile',
+    description: 'Visual media, stories, reels, follower metrics, and bio.',
+  },
 ];
 
+import { probeGmailAndEmailLive } from './liveEmailService';
+
 /**
- * Asynchronously probes public platforms live for a given username.
- * Attempts local probe first; falls back to backend recon crawler if available.
+ * Asynchronously probes public platforms live for a given username OR Gmail / email.
+ * Attempts backend prober first; falls back to direct browser-native OSINT.
  */
-export async function probePlatformsLive(username) {
-  const cleanUsername = (username || '').trim().replace(/^@/, '');
+export async function probePlatformsLive(target, onProgress) {
+  // Support object input: { username, email }
+  let emailParam = '';
+  let usernameParam = '';
+
+  if (typeof target === 'object' && target !== null) {
+    emailParam = (target.email || '').trim();
+    usernameParam = (target.username || '').trim();
+  } else if (typeof target === 'string') {
+    if (target.includes('@')) {
+      emailParam = target.trim();
+    } else {
+      usernameParam = target.trim();
+    }
+  }
+
+  // If email is provided, run full-spectrum Gmail / email reconnaissance
+  if (emailParam && emailParam.includes('@')) {
+    const emailResult = await probeGmailAndEmailLive(emailParam, onProgress);
+    return emailResult.accounts || [];
+  }
+
+  const cleanUsername = usernameParam.replace(/^@/, '');
   if (!cleanUsername) {
     return [];
   }
 
   // 1. First, attempt to query the local FastAPI backend prober if online
   try {
-    const backendRes = await fetch(`http://localhost:8000/api/v1/recon/social?username=${encodeURIComponent(cleanUsername)}`, {
+    const backendRes = await fetch(`http://localhost:8000/api/v1/recon/social?query=${encodeURIComponent(cleanUsername)}`, {
       headers: { 'Accept': 'application/json' },
     });
     if (backendRes.ok) {
